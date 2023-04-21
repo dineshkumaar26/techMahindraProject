@@ -3,94 +3,98 @@ package stepDefinitions;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 
-import com.opencsv.CSVReader;
-import com.opencsv.CSVWriter;
-import com.opencsv.exceptions.CsvException;
-
+import io.cucumber.core.logging.Logger;
+import io.cucumber.core.logging.LoggerFactory;
+import io.cucumber.java.AfterStep;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
-import java.io.*;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.*;
 
+import org.openqa.selenium.WebDriver;
 
-public class DataStepDefinitions  {
-	List<String[]> rows1 , rows2;
+public class DataStepDefinitions {
+	WebDriver driver;
+	LinkedHashMap<String, String> intrumentFilehmap = new LinkedHashMap<String, String>();
+	LinkedHashMap<String, String> positionDetailhmap = new LinkedHashMap<String, String>();
+	List<String[]> outputFilelist = new ArrayList<>();
+	private static final Logger logger = LoggerFactory.getLogger(DataStepDefinitions.class);
 
+	@Given("read data from Input File1")
+	public void read_data_from_input_file1() throws IOException {
+		String csvFile = "C:\\Users\\sabar\\eclipse-workspace\\techMahindraProject\\CSV_Files\\InputFile1.csv";
+		String line;
+		String cvsSplitBy = ",";
 
-	@Given("read data from Input File and merge in Output file")
-	public void read_data_from_input_file_and_merge_in_output_file() {
-
-
-		try {
-			// load the first excel file
-			FileInputStream file1 = new FileInputStream(new File("C:\\Users\\sabar\\eclipse-workspace\\techMahindraProject\\CSV_Files\\InputFile1.csv"));
-			XSSFWorkbook workbook1 = new XSSFWorkbook(file1);
-			XSSFSheet sheet1 = workbook1.getSheetAt(0);
-
-			// load the second excel file
-			FileInputStream file2 = new FileInputStream(new File("C:\\Users\\sabar\\eclipse-workspace\\techMahindraProject\\CSV_Files\\InputFile2.csv"));
-			XSSFWorkbook workbook2 = new XSSFWorkbook(file2);
-			XSSFSheet sheet2 = workbook2.getSheetAt(0);
-
-			// create the output workbook and sheet
-			XSSFWorkbook outputWorkbook = new XSSFWorkbook();
-			XSSFSheet outputSheet = outputWorkbook.createSheet("C:\\Users\\sabar\\eclipse-workspace\\techMahindraProject\\CSV_Files\\Output");
-
-			// write the headers to the output sheet
-			Row headerRow = outputSheet.createRow(0);
-			headerRow.createCell(0).setCellValue("ID");
-			headerRow.createCell(1).setCellValue("PositionID");
-			headerRow.createCell(2).setCellValue("ISIN");
-			headerRow.createCell(3).setCellValue("Quantity");
-			headerRow.createCell(4).setCellValue("Total Price");
-
-			// iterate through the rows in the second sheet
-			for (int i = 1; i <= sheet2.getLastRowNum(); i++) {
-				XSSFRow row2 = sheet2.getRow(i);
-				int primaryID = (int) row2.getCell(1).getNumericCellValue();
-				int quantity = (int) row2.getCell(2).getNumericCellValue();
-
-				// look for matching row in the first sheet
-				for (int j = 1; j <= sheet1.getLastRowNum(); j++) {
-					XSSFRow row1 = sheet1.getRow(j);
-					if ((int) row1.getCell(0).getNumericCellValue() == primaryID) {
-						String ISIN = row1.getCell(2).getStringCellValue();
-						double unitPrice = row1.getCell(3).getNumericCellValue();
-						double totalPrice = quantity * unitPrice;
-
-						// write the values to the output sheet
-						Row outputRow = outputSheet.createRow(outputSheet.getLastRowNum() + 1);
-						outputRow.createCell(0).setCellValue(primaryID);
-						outputRow.createCell(1).setCellValue(row2.getCell(0).getStringCellValue());
-						outputRow.createCell(2).setCellValue(ISIN);
-						outputRow.createCell(3).setCellValue(quantity);
-						outputRow.createCell(4).setCellValue(totalPrice);
-					}
+		try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
+			while ((line = br.readLine()) != null) {
+				String[] row = line.split(cvsSplitBy);
+				for (String value : row) {
+					System.out.print(value + " ");
+					intrumentFilehmap.put(row[2], row[3]);
 				}
+				System.out.println("");
 			}
+			System.out.println("IntrumentFile Map values are......" + intrumentFilehmap);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
-			// write the output file
-			FileOutputStream outFile = new FileOutputStream(new File("C:\\Users\\sabar\\eclipse-workspace\\techMahindraProject\\CSV_Files\\output.xlsx"));
-			outputWorkbook.write(outFile);
-			outFile.close();
+	@Then("read data from Input File2")
+	public void read_data_from_input_file2() {
+		String csvFile = "C:\\Users\\sabar\\eclipse-workspace\\techMahindraProject\\CSV_Files\\InputFile2.csv";
+		String line;
+		String cvsSplitBy = ",";
 
-			// close all workbooks and streams
-			workbook1.close();
-			workbook2.close();
-			outputWorkbook.close();
-			file1.close();
-			file2.close();
+		try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
 
-			System.out.println("Output file generated successfully.");
-		} catch (Exception e) {
+			while ((line = br.readLine()) != null) {
+				String[] row = line.split(cvsSplitBy);
+				for (String value : row) {
+					System.out.print(value + " ");
+					positionDetailhmap.put(row[0], row[2]);
+				}
+				System.out.println("");
+			}
+			System.out.println("Position Details File Map values are......" + positionDetailhmap);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Then("read and validate data from OutputFile")
+	public void read_and_validate_data_from_output_file() throws FileNotFoundException, IOException {
+		String csvFilePath = "C:\\Users\\sabar\\eclipse-workspace\\techMahindraProject\\CSV_Files\\output.csv";
+
+		try (BufferedReader br = new BufferedReader(new FileReader(csvFilePath))) {
+			String line;
+			while ((line = br.readLine()) != null) {
+				String[] values = line.split(",");
+				outputFilelist.add(values);
+			}
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
+		for (String[] row : outputFilelist) {
+			System.out.println(String.join(", ", row));
+
+		}
+		System.out.println("Validating the data in OutPut File ........");
+		for (int i = 1; i < outputFilelist.size(); i++) {
+			int totalPrice = Integer.parseInt((outputFilelist.get(i)[4]));
+			int quantity = Integer.parseInt((outputFilelist.get(i)[3]));
+			int price = Integer.parseInt((intrumentFilehmap.get(outputFilelist.get(i)[2])));
+			if (totalPrice == quantity * price) {
+				System.out.printf(" %d is equal to %d * %d%n", totalPrice, quantity, price);
+				// logger.info(() -> "The Total Price Value is: " + totalPrice);
+			}
+
+		}
 	}
+
 }
